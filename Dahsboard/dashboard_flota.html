@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fleet Monitor — Flota Logística</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-primary: #ffffff; --bg-secondary: #f5f5f3; --bg-tertiary: #eeede8;
+    --text-primary: #1a1a18; --text-secondary: #5f5e5a; --text-tertiary: #888780;
+    --border: rgba(0,0,0,0.12); --border-md: rgba(0,0,0,0.22);
+    --success: #0f6e56; --success-bg: #e1f5ee;
+    --warning: #854f0b; --warning-bg: #faeeda;
+    --danger: #a32d2d;  --danger-bg: #fcebeb;
+    --info: #185fa5;    --info-bg: #e6f1fb;
+    --radius-md: 8px; --radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-primary: #1e1e1c; --bg-secondary: #2a2a28; --bg-tertiary: #333330;
+      --text-primary: #e8e6e0; --text-secondary: #b4b2a9; --text-tertiary: #888780;
+      --border: rgba(255,255,255,0.1); --border-md: rgba(255,255,255,0.2);
+      --success: #5dcaa5; --success-bg: #04342c;
+      --warning: #ef9f27; --warning-bg: #412402;
+      --danger: #f09595;  --danger-bg: #501313;
+      --info: #85b7eb;    --info-bg: #042c53;
+    }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-tertiary); color: var(--text-primary); min-height: 100vh; padding: 24px; }
+  .dash { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 16px 20px; }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .topbar-title { font-size: 17px; font-weight: 500; }
+  .topbar-sub { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+  .status-dot { width: 9px; height: 9px; border-radius: 50%; background: #1d9e75; flex-shrink: 0; }
+  .status-dot.red { background: #e24b4a; }
+  .refresh-btn { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 8px 14px; cursor: pointer; border: 0.5px solid var(--border-md); border-radius: var(--radius-md); background: transparent; color: var(--text-secondary); transition: background .15s; }
+  .refresh-btn:hover { background: var(--bg-secondary); }
+  .spinning { animation: spin .8s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .metric { background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; }
+  .metric-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .metric-value { font-size: 26px; font-weight: 500; }
+  .metric-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
+  .section-title { font-size: 11px; font-weight: 500; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+  .vehicles { display: flex; flex-direction: column; gap: 10px; }
+  .vehicle-card { background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; transition: border-color .3s; }
+  .vehicle-card.warn   { border-color: var(--warning); }
+  .vehicle-card.danger { border-color: var(--danger); border-width: 1px; }
+  .vh-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .vh-id { font-size: 15px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+  .vh-id i { color: var(--text-secondary); }
+  .vh-right { display: flex; align-items: center; gap: 10px; }
+  .vh-ts { font-size: 11px; color: var(--text-tertiary); }
+  .badge { font-size: 11px; padding: 3px 9px; border-radius: 99px; font-weight: 500; }
+  .badge-ok     { background: var(--success-bg); color: var(--success); }
+  .badge-warn   { background: var(--warning-bg); color: var(--warning); }
+  .badge-danger { background: var(--danger-bg);  color: var(--danger);  }
+  .vh-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .vh-metric-label { font-size: 11px; color: var(--text-tertiary); display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+  .vh-metric-val { font-size: 15px; font-weight: 500; }
+  .bar-wrap { height: 5px; background: var(--border); border-radius: 3px; margin-top: 5px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width .6s ease, background .4s; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .panel { background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; }
+  .queues { display: flex; flex-direction: column; gap: 10px; }
+  .queue-row { display: flex; align-items: center; gap: 8px; }
+  .queue-name { flex: 1; font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
+  .queue-bar-wrap { width: 70px; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .queue-bar { height: 100%; border-radius: 3px; transition: width .6s ease; }
+  .queue-count { font-size: 13px; font-weight: 500; min-width: 24px; text-align: right; }
+  .services { margin-top: 16px; border-top: 0.5px solid var(--border); padding-top: 14px; }
+  .conn-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 0.5px solid var(--border); font-size: 12px; }
+  .conn-row:last-child { border-bottom: none; }
+  .conn-name { color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+  .conn-status { display: flex; align-items: center; gap: 6px; font-weight: 500; }
+  .log-list { display: flex; flex-direction: column; gap: 5px; max-height: 340px; overflow-y: auto; }
+  .log-item { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; padding: 7px 10px; border-radius: var(--radius-md); background: var(--bg-secondary); }
+  .log-time { color: var(--text-tertiary); white-space: nowrap; min-width: 52px; }
+  .log-msg { color: var(--text-primary); line-height: 1.4; }
+  .log-item.log-warn   .log-msg { color: var(--warning); }
+  .log-item.log-danger .log-msg { color: var(--danger);  }
+  .log-item.log-ok     .log-msg { color: var(--success); }
+  .footer { text-align: center; font-size: 11px; color: var(--text-tertiary); padding-top: 4px; }
+  @media (max-width: 700px) {
+    body { padding: 12px; }
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .two-col { grid-template-columns: 1fr; }
+    .vh-metrics { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="dash">
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="status-dot" id="main-dot"></span>
+      <div>
+        <div class="topbar-title"><i class="ti ti-truck" style="margin-right:6px"></i>Fleet Monitor — Flota logística</div>
+        <div class="topbar-sub" id="last-update">Iniciando...</div>
+      </div>
+    </div>
+    <button class="refresh-btn" onclick="refreshAll()">
+      <i class="ti ti-refresh" id="refresh-icon"></i>Actualizar
+    </button>
+  </div>
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label"><i class="ti ti-truck"></i>Vehículos activos</div>
+      <div class="metric-value" id="m-vehicles">3</div>
+      <div class="metric-sub">de 3 en flota</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label"><i class="ti ti-bell"></i>Alertas activas</div>
+      <div class="metric-value" id="m-alerts">0</div>
+      <div class="metric-sub">temperatura / combustible</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label"><i class="ti ti-messages"></i>Mensajes en colas</div>
+      <div class="metric-value" id="m-msgs">0</div>
+      <div class="metric-sub">RabbitMQ total</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label"><i class="ti ti-clock"></i>Frecuencia</div>
+      <div class="metric-value">5s</div>
+      <div class="metric-sub">ciclo de telemetría</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-title">Estado de vehículos</div>
+    <div class="vehicles" id="vehicles-container"></div>
+  </div>
+
+  <div class="two-col">
+    <div class="panel">
+      <!-- Sección de Colas de Mensajes agregada para evitar el error TypeError en updateQueues() -->
+      <div class="queues">
+        <div class="section-title">Colas de mensajes (RabbitMQ)</div>
+        <div class="queue-row">
+          <div class="queue-name"><i class="ti ti-map-pin"></i> GPS Telemetría</div>
+          <div class="queue-bar-wrap"><div class="queue-bar" id="q-gps" style="width:0; background:var(--info);"></div></div>
+          <div class="queue-count" id="qc-gps">0</div>
+        </div>
+        <div class="queue-row">
+          <div class="queue-name"><i class="ti ti-temperature"></i> Alertas Temp</div>
+          <div class="queue-bar-wrap"><div class="queue-bar" id="q-temp" style="width:0; background:var(--danger);"></div></div>
+          <div class="queue-count" id="qc-temp">0</div>
+        </div>
+        <div class="queue-row">
+          <div class="queue-name"><i class="ti ti-gas-station"></i> Combustible</div>
+          <div class="queue-bar-wrap"><div class="queue-bar" id="q-fuel" style="width:0; background:var(--warning);"></div></div>
+          <div class="queue-count" id="qc-fuel">0</div>
+        </div>
+        <div class="queue-row">
+          <div class="queue-name"><i class="ti ti-bell"></i> Notificaciones</div>
+          <div class="queue-bar-wrap"><div class="queue-bar" id="q-notif" style="width:0; background:var(--success);"></div></div>
+          <div class="queue-count" id="qc-notif">0</div>
+        </div>
+      </div>
+      
+      <div class="services">
+        <div class="section-title">Servicios</div>
+        <div class="conn-row">
+          <span class="conn-name"><i class="ti ti-server"></i>Spring Boot API :8080</span>
+          <span class="conn-status"><span class="status-dot" id="dot-spring"></span><span id="lbl-spring">—</span></span>
+        </div>
+        <div class="conn-row">
+          <span class="conn-name"><i class="ti ti-database"></i>RabbitMQ (vía Spring)</span>
+          <span class="conn-status"><span class="status-dot" id="dot-rabbit"></span><span id="lbl-rabbit">—</span></span>
+        </div>
+        <div class="conn-row">
+          <span class="conn-name"><i class="ti ti-wifi"></i>MQTT Broker :1883</span>
+          <span class="conn-status"><span class="status-dot" id="dot-mqtt"></span><span id="lbl-mqtt">—</span></span>
+        </div>
+        <div class="conn-row">
+          <span class="conn-name"><i class="ti ti-arrows-exchange"></i>Bridge Python</span>
+          <span class="conn-status"><span class="status-dot" id="dot-bridge"></span><span id="lbl-bridge">—</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="section-title">Log de eventos</div>
+      <div class="log-list" id="log-list"></div>
+    </div>
+  </div>
+
+  <div class="footer">APE_006 — Sistemas Distribuidos · FEIRNNR · UNL · 2026</div>
+</div>
+
+<script>
+// API Base de Spring Boot
+const API = 'http://localhost:8080';
+const VEHICLES = ['VH-001','VH-002','VH-003'];
+let simData = {}, logEntries = [], alertCount = 0;
+let springOnline = false, rabbitOnline = false;
+
+// Inicializa los datos simulados de los vehículos en el dashboard
+function initSim() {
+  VEHICLES.forEach(id => {
+    simData[id] = {
+      lat: parseFloat((-0.2295+(Math.random()-.5)*.02).toFixed(6)),
+      lng: parseFloat((-78.5243+(Math.random()-.5)*.02).toFixed(6)),
+      speed: Math.round(Math.random()*80),
+      temp: parseFloat((Math.random()*30-5).toFixed(1)),
+      fuel: Math.round(30+Math.random()*70),
+      ts: new Date()
+    };
+  });
+}
+
+// Actualiza los valores simulados en cada ciclo para dar sensación de movimiento
+function tickSim() {
+  VEHICLES.forEach(id => {
+    const d = simData[id];
+    d.lat   = parseFloat((d.lat+(Math.random()-.5)*.001).toFixed(6));
+    d.lng   = parseFloat((d.lng+(Math.random()-.5)*.001).toFixed(6));
+    d.speed = Math.max(0, Math.min(110, d.speed+Math.round((Math.random()-.5)*14)));
+    d.temp  = parseFloat(Math.max(-10,Math.min(35,d.temp+(Math.random()-.5)*2)).toFixed(1));
+    d.fuel  = Math.max(5, Math.min(100, d.fuel-Math.random()*.4));
+    d.ts    = new Date();
+  });
+}
+
+function tempSt(v)  { return v>25?'danger':v<0?'warn':'ok'; }
+function fuelSt(v)  { return v<15?'danger':v<30?'warn':'ok'; }
+function speedSt(v) { return v>90?'warn':'ok'; }
+function vhSt(d) {
+  const s=[tempSt(d.temp),fuelSt(d.fuel),speedSt(d.speed)];
+  return s.includes('danger')?'danger':s.includes('warn')?'warn':'ok';
+}
+function stColor(s){ return {ok:'var(--success)',warn:'var(--warning)',danger:'var(--danger)'}[s]; }
+function fuelColor(v){ return v>30?'#1D9E75':v>15?'#EF9F27':'#E24B4A'; }
+function badgeLabel(s){ return {ok:'Normal',warn:'Alerta',danger:'Crítico'}[s]; }
+
+function renderVehicles() {
+  alertCount = 0;
+  const c = document.getElementById('vehicles-container');
+  c.innerHTML = '';
+  VEHICLES.forEach(id => {
+    const d = simData[id], st = vhSt(d);
+    if(st!=='ok') alertCount++;
+    const fp = Math.round(d.fuel);
+    const ts = d.ts.toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const card = document.createElement('div');
+    card.className = 'vehicle-card '+(st!=='ok'?st:'');
+    card.innerHTML = `
+      <div class="vh-header">
+        <div class="vh-id"><i class="ti ti-truck"></i>${id}</div>
+        <div class="vh-right">
+          <span class="vh-ts">${ts}</span>
+          <span class="badge badge-${st}">${badgeLabel(st)}</span>
+        </div>
+      </div>
+      <div class="vh-metrics">
+        <div class="vh-metric">
+          <div class="vh-metric-label"><i class="ti ti-map-pin"></i>Posición GPS</div>
+          <div class="vh-metric-val" style="font-size:12px;line-height:1.6">${d.lat}<br>${d.lng}</div>
+        </div>
+        <div class="vh-metric">
+          <div class="vh-metric-label"><i class="ti ti-gauge"></i>Velocidad</div>
+          <div class="vh-metric-val" style="color:${stColor(speedSt(d.speed))}">${d.speed} km/h</div>
+        </div>
+        <div class="vh-metric">
+          <div class="vh-metric-label"><i class="ti ti-temperature"></i>Temperatura</div>
+          <div class="vh-metric-val" style="color:${stColor(tempSt(d.temp))}">${d.temp} °C</div>
+        </div>
+        <div class="vh-metric">
+          <div class="vh-metric-label"><i class="ti ti-gas-station"></i>Combustible</div>
+          <div class="vh-metric-val" style="color:${fuelColor(d.fuel)}">${fp}%</div>
+          <div class="bar-wrap"><div class="bar-fill" style="width:${fp}%;background:${fuelColor(d.fuel)}"></div></div>
+        </div>
+      </div>`;
+    c.appendChild(card);
+  });
+  const el = document.getElementById('m-alerts');
+  el.textContent = alertCount;
+  el.style.color = alertCount>0?'var(--warning)':'var(--success)';
+}
+
+function addLog(msg, type='info') {
+  const t = new Date().toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  logEntries.unshift({msg,type,t});
+  if(logEntries.length>40) logEntries.pop();
+  const c = document.getElementById('log-list');
+  c.innerHTML = '';
+  logEntries.slice(0,18).forEach(e => {
+    const div = document.createElement('div');
+    div.className = 'log-item log-'+e.type;
+    div.innerHTML = `<span class="log-time">${e.t}</span><span class="log-msg">${e.msg}</span>`;
+    c.appendChild(div);
+  });
+}
+
+function setDot(dotId, lblId, ok, label) {
+  const dot = document.getElementById(dotId);
+  const lbl = document.getElementById(lblId);
+  if(!dot||!lbl) return;
+  dot.className = 'status-dot'+(ok?'':' red');
+  lbl.textContent = label;
+  lbl.style.color = ok?'var(--success)':'var(--danger)';
+}
+
+// Actualiza visualmente las barras de capacidad de las colas de RabbitMQ
+function updateQueues(data) {
+  const map = {
+    'cola.gps.telemetria':      ['q-gps',  'qc-gps'],
+    'cola.alertas.temperatura': ['q-temp', 'qc-temp'],
+    'cola.combustible.nivel':   ['q-fuel', 'qc-fuel'],
+    'cola.notificaciones':      ['q-notif','qc-notif'],
+  };
+  let total = 0;
+  Object.entries(map).forEach(([name,[barId,cntId]]) => {
+    const q = data ? data.find(x=>x.name===name) : null;
+    const n = q ? (q.messages||0) : 0;
+    total += n;
+    const pct = Math.min(100, Math.round(n/20*100));
+    // Actualiza la barra y el texto correspondiente
+    document.getElementById(barId).style.width = pct+'%';
+    document.getElementById(cntId).textContent = n;
+  });
+  document.getElementById('m-msgs').textContent = total;
+}
+
+// Realiza ping al endpoint de status de Spring Boot
+async function checkSpring() {
+  try {
+    const r = await fetch(API+'/api/fleet/status', {signal:AbortSignal.timeout(3000)});
+    if(r.ok) {
+      const d = await r.json();
+      springOnline = true;
+      setDot('dot-spring','lbl-spring',true,'En línea');
+      document.getElementById('m-vehicles').textContent = d.totalVehicles||3;
+      document.getElementById('main-dot').className = 'status-dot';
+      addLog('Spring Boot respondió — /api/fleet/status OK','ok');
+      return true;
+    }
+  } catch(e) {}
+  springOnline = false;
+  setDot('dot-spring','lbl-spring',false,'Sin conexión');
+  document.getElementById('main-dot').className = 'status-dot red';
+  addLog('Spring Boot no disponible en :8080','warn');
+  return false;
+}
+
+
+// Verifica el estado de RabbitMQ a través del endpoint expuesto por Spring Boot
+async function checkQueues() {
+  if(!springOnline) {
+    setDot('dot-rabbit','lbl-rabbit',false,'Sin conexión');
+    updateQueues(null);
+    return;
+  }
+  try {
+    const r = await fetch(API+'/api/fleet/queues', {signal:AbortSignal.timeout(3000)});
+    if(r.ok) {
+      const data = await r.json();
+      rabbitOnline = true;
+      setDot('dot-rabbit','lbl-rabbit',true,'En línea');
+      updateQueues(data);
+      addLog('RabbitMQ — colas actualizadas vía Spring Boot','ok');
+      return;
+    }
+  } catch(e) {}
+  rabbitOnline = false;
+  setDot('dot-rabbit','lbl-rabbit',false,'Sin conexión');
+  updateQueues(null);
+}
+
+// Determina el estado deducido de MQTT y el Bridge (ya que solo se consulta vía backend)
+function updateMqttBridge() {
+  const ok = springOnline && rabbitOnline;
+  setDot('dot-mqtt',   'lbl-mqtt',   ok, ok?'En línea':'Sin conexión (Asumido)');
+  setDot('dot-bridge', 'lbl-bridge', ok, ok?'Activo':'Inactivo (Asumido)');
+}
+
+
+function generateAlertLogs() {
+  VEHICLES.forEach(id => {
+    const d = simData[id];
+    if(tempSt(d.temp)==='danger') addLog(`${id} — temperatura crítica: ${d.temp}°C`,'danger');
+    else if(tempSt(d.temp)==='warn') addLog(`${id} — temperatura baja: ${d.temp}°C`,'warn');
+    if(fuelSt(d.fuel)==='danger') addLog(`${id} — combustible crítico: ${Math.round(d.fuel)}%`,'danger');
+    else if(fuelSt(d.fuel)==='warn') addLog(`${id} — combustible bajo: ${Math.round(d.fuel)}%`,'warn');
+    if(speedSt(d.speed)==='warn') addLog(`${id} — exceso de velocidad: ${d.speed} km/h`,'warn');
+  });
+  if(Math.random()<.5){
+    const id=VEHICLES[Math.floor(Math.random()*3)];
+    addLog(`GPS recibido · ${id} → ${simData[id].lat}, ${simData[id].lng}`,'info');
+  }
+}
+
+async function refreshAll() {
+  const icon = document.getElementById('refresh-icon');
+  icon.classList.add('spinning');
+  tickSim();
+  renderVehicles();
+  generateAlertLogs();
+  const now = new Date().toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('last-update').textContent = 'Última actualización: '+now;
+  await checkSpring();
+  await checkQueues();
+  updateMqttBridge();
+  icon.classList.remove('spinning');
+}
+
+initSim();
+addLog('Dashboard iniciado — conectando con Spring Boot...','info');
+refreshAll();
+setInterval(refreshAll, 5000);
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# Archivos compilados y empaquetados
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+
+# Entornos de desarrollo integrados (IDEs)
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+#entornos virtuales
+*/env/
